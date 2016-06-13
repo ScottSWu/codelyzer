@@ -2,7 +2,7 @@
   "version": "1.6.2",
   "compilerOptions": {
     "module": "commonjs",
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "declaration": true,
     "sourceMap": false,
     "target": "es2015",

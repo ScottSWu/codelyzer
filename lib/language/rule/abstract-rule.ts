@@ -2,7 +2,16 @@ import * as ts from 'typescript';
 import {RefactorRuleWalker} from '../walker';
 import {Match, IOptions, IRule, IDisabledInterval} from './';
 
+export enum RULE_SEVERITY {
+  ERROR, WARNING, INFO
+};
+
 export abstract class AbstractRule implements IRule {
+  public static NAME: string = "";;
+  public static SEVERITY: RULE_SEVERITY = RULE_SEVERITY.INFO;
+  public static DESCRIPTION: string = "";
+  public static FAILURE_STRING: string = "";
+
   private options: IOptions;
 
   constructor(ruleName: string, private value: any, disabledIntervals: IDisabledInterval[]) {
