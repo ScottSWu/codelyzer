@@ -2,7 +2,8 @@
   "rules_config": {
     "import-destructuring-spacing": true,
     "semicolon": true,
-    "no-string-literal": true
+    "no-string-literal": true,
+    "must-use-return": true
   }
 }
 

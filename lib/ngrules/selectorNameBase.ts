@@ -17,15 +17,12 @@ export abstract class SelectorRule extends AbstractRule {
     super(ruleName, value, disabledIntervals);
   }
 
-  public apply(sourceFile: ts.SourceFile): Match[] {
+  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): Match[] {
     let documentRegistry = ts.createDocumentRegistry();
     let languageServiceHost = createLanguageServiceHost('file.ts', sourceFile.getFullText());
     let languageService : ts.LanguageService = ts.createLanguageService(languageServiceHost, documentRegistry);
     return this.applyWithWalker(
-      new SelectorNameValidatorWalker(
-        sourceFile,
-        languageService,
-        this));
+      new SelectorNameValidatorWalker(sourceFile, program, this));
   }
 
   public getFailureString(failureConfig: any): string {
@@ -42,13 +39,8 @@ export abstract class SelectorRule extends AbstractRule {
 }
 
 class SelectorNameValidatorWalker extends RefactorRuleWalker {
-  private languageService : ts.LanguageService;
-  private typeChecker : ts.TypeChecker;
-
-  constructor(sourceFile: ts.SourceFile, languageService : ts.LanguageService, private rule: SelectorRule) {
-    super(sourceFile, rule.getOptions());
-    this.languageService = languageService;
-    this.typeChecker = languageService.getProgram().getTypeChecker();
+  constructor(sourceFile: ts.SourceFile, program: ts.Program, private rule: SelectorRule) {
+    super(sourceFile, rule.getOptions(), program);
   }
 
   visitClassDeclaration(node: ts.ClassDeclaration) {

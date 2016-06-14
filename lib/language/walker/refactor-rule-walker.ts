@@ -9,16 +9,20 @@ export class RefactorRuleWalker extends SyntaxWalker {
   private options: any[];
   private matches: Match[];
   private sourceFile: ts.SourceFile;
+  private program: ts.Program;
+  private typeChecker: ts.TypeChecker;
   private disabledIntervals: IDisabledInterval[];
   private ruleName: string;
 
-  constructor(sourceFile: ts.SourceFile, options: IOptions) {
+  constructor(sourceFile: ts.SourceFile, options: IOptions, program: ts.Program = undefined) {
     super();
 
     this.position = 0;
     this.matches = [];
     this.options = options.ruleArguments;
     this.sourceFile = sourceFile;
+    this.program = program;
+    this.typeChecker = program.getTypeChecker();
     this.limit = this.sourceFile.getFullWidth();
     this.disabledIntervals = options.disabledIntervals;
     this.ruleName = options.ruleName;
@@ -26,6 +30,14 @@ export class RefactorRuleWalker extends SyntaxWalker {
 
   public getSourceFile(): ts.SourceFile {
     return this.sourceFile;
+  }
+
+  public getProgram(): ts.Program {
+    return this.program;
+  }
+
+  public getTypeChecker(): ts.TypeChecker {
+    return this.typeChecker;
   }
 
   public getMatches(): Match[] {

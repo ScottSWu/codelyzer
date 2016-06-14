@@ -36,7 +36,15 @@ export abstract class AbstractRule implements IRule {
     this.options.disabledIntervals = di;
   }
 
-  public abstract apply(sourceFile: ts.SourceFile): Match[];
+  public apply(sourceFile: ts.SourceFile): Match[] {
+    return [];
+  }
+
+  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): Match[] {
+    // Default to just the sourceFile
+    // This ensures compatibility with TSLint
+    return this.apply(sourceFile);
+  }
 
   public applyWithWalker(walker: RefactorRuleWalker): Match[] {
     walker.walk(walker.getSourceFile());

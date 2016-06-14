@@ -25,25 +25,18 @@ export class UsePropertyDecorator extends AbstractRule {
     super(ruleName, value, disabledIntervals);
   }
 
-  public apply(sourceFile: ts.SourceFile): Match[] {
+  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): Match[] {
     let documentRegistry = ts.createDocumentRegistry();
     let languageServiceHost = createLanguageServiceHost('file.ts', sourceFile.getFullText());
     return this.applyWithWalker(
-      new DirectiveMetadataWalker(sourceFile,
-        this.getOptions(),
-        ts.createLanguageService(languageServiceHost, documentRegistry), this.config));
+      new DirectiveMetadataWalker(sourceFile, this.getOptions(), program, this.config));
   }
 }
 
 class DirectiveMetadataWalker extends RefactorRuleWalker {
-  private languageService : ts.LanguageService;
-  private typeChecker : ts.TypeChecker;
-
   constructor(sourceFile: ts.SourceFile, options: IOptions,
-    languageService : ts.LanguageService, private config: IUsePropertyDecoratorConfig) {
-      super(sourceFile, options);
-      this.languageService = languageService;
-      this.typeChecker = languageService.getProgram().getTypeChecker();
+    program: ts.Program, private config: IUsePropertyDecoratorConfig) {
+      super(sourceFile, options, program);
   }
 
   visitClassDeclaration(node: ts.ClassDeclaration) {
