@@ -22,7 +22,7 @@ export class RefactorRuleWalker extends SyntaxWalker {
     this.options = options.ruleArguments;
     this.sourceFile = sourceFile;
     this.program = program;
-    this.typeChecker = program.getTypeChecker();
+    this.typeChecker = program ? program.getTypeChecker() : undefined;
     this.limit = this.sourceFile.getFullWidth();
     this.disabledIntervals = options.disabledIntervals;
     this.ruleName = options.ruleName;

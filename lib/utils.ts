@@ -109,8 +109,8 @@ const BUILT_IN_CONFIG = /^tslint:(.*)$/;
  * of the search for a configuration.
  * @returns A TSLint configuration object
  */
-export function findConfiguration(configFile: string, inputFilePath: string): IConfigurationFile {
-  const configPath = findConfigurationPath(configFile, inputFilePath);
+export function findConfiguration(configFile: string, inputFilePaths: string[]): IConfigurationFile {
+  const configPath = findConfigurationPath(configFile, inputFilePaths);
   return loadConfigurationFromPath(configPath);
 }
 
@@ -124,7 +124,7 @@ export function findConfiguration(configFile: string, inputFilePath: string): IC
  * @returns An absolute path to a tslint.json file, a path to a package.json file with a tslintConfig field
  * or undefined if neither can be found.
  */
-export function findConfigurationPath(suppliedConfigFilePath: string, inputFilePath: string) {
+export function findConfigurationPath(suppliedConfigFilePath: string, inputFilePaths: string[]) {
   if (suppliedConfigFilePath != null) {
     if (!fs.existsSync(suppliedConfigFilePath)) {
       throw new Error(`Could not find config file at: ${path.resolve(suppliedConfigFilePath)}`);
@@ -133,23 +133,29 @@ export function findConfigurationPath(suppliedConfigFilePath: string, inputFileP
     }
   } else {
     // search for tslint.json from input file location
-    let configFilePath = findup(CONFIG_FILENAME, { cwd: inputFilePath, nocase: true });
-    if (configFilePath != null && fs.existsSync(configFilePath)) {
-      return path.resolve(configFilePath);
+    for (const inputFilePath of inputFilePaths) {
+      const configFilePath = findup(CONFIG_FILENAME, { cwd: inputFilePath, nocase: true });
+      if (configFilePath != null && fs.existsSync(configFilePath)) {
+        return path.resolve(configFilePath);
+      }
     }
 
     // search for package.json with tslintConfig property
-    configFilePath = findup("package.json", { cwd: inputFilePath, nocase: true });
-    if (configFilePath != null && require(configFilePath).tslintConfig != null) {
-      return path.resolve(configFilePath);
+    for (const inputFilePath of inputFilePaths) {
+      const configFilePath = findup("package.json", { cwd: inputFilePath, nocase: true });
+      if (configFilePath != null && require(configFilePath).tslintConfig != null) {
+        return path.resolve(configFilePath);
+      }
     }
 
     // search for tslint.json in home directory
     const homeDir = getHomeDir();
     if (homeDir != null) {
-      configFilePath = path.join(homeDir, CONFIG_FILENAME);
-      if (fs.existsSync(configFilePath)) {
-        return path.resolve(configFilePath);
+      for (const inputFilePath of inputFilePaths) {
+        const configFilePath = path.join(homeDir, CONFIG_FILENAME);
+        if (fs.existsSync(configFilePath)) {
+          return path.resolve(configFilePath);
+        }
       }
     }
 

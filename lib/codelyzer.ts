@@ -1,4 +1,5 @@
-import {Match, AbstractRule, getSourceFile, Fix, Replacement, IDisabledInterval} from './language';
+import * as ts from 'typescript';
+import {Match, AbstractRule, getProgram, Fix, Replacement, IDisabledInterval} from './language';
 import {EnableDisableRulesWalker} from './enable-disable-rules';
 import {
   ICodelyzerOptionsRaw,
@@ -19,32 +20,37 @@ export interface RulesMap {
 }
 
 export class Codelyzer {
-  constructor(private fileName: string,
-      private source: string,
-      private rulesMap: RulesMap) {}
+  constructor(private fileNames: string[],
+    private contents: string[], private rulesMap: RulesMap) {}
 
-  public lint() {
-    const matches: Match[] = [];
-    const sourceFile = getSourceFile(this.fileName, this.source);
-    const enabledRules = this.getRules();
-    for (let rule of enabledRules) {
-      const ruleMatches = rule.apply(sourceFile);
-      for (let match of ruleMatches) {
-        if (!this.containsMatch(matches, match)) {
-          matches.push(match);
+  public lint(): Map<ts.SourceFile, Match[]> {
+    const matchMap = new Map<ts.SourceFile, Match[]>();
+    const program = getProgram(this.fileNames, this.contents);
+
+    for (const sourceFile of program.getSourceFiles()) {
+      const matches: Match[] = [];
+      const enabledRules = this.getRules(sourceFile);
+      for (let rule of enabledRules) {
+        const ruleMatches = rule.applyWithProgram(sourceFile, program);
+        for (let match of ruleMatches) {
+          if (!this.containsMatch(matches, match)) {
+            matches.push(match);
+          }
         }
       }
+      matchMap.set(sourceFile, matches);
     }
-    return matches;
+    return matchMap;
   }
 
   public *process(): any {
+    /*
     const matches: Match[] = [];
     const enabledRules = this.getRules();
     let sourceFile = getSourceFile(this.fileName, this.source);
     for (let rule of enabledRules) {
       // Workaround. Will not work if the fixes have intersection.
-      // In the perfect scenario we need to yiled on each found match.
+      // In the perfect scenario we need to yield on each found match.
       const ruleMatches = this.sortMatches(rule.apply(sourceFile));
       for (let match of ruleMatches) {
         if (!this.containsMatch(matches, match)) {
@@ -59,16 +65,17 @@ export class Codelyzer {
         }
       }
     }
+    */
   }
 
-  private getFixes(match: Match, choices: string[]) {
+  private getFixes(match: Match, choices: string[]): Fix[] {
     return match.fixes
       .filter(f => choices.indexOf(f.description) >= 0)
       // Already sorted
       .reduce((accum, f) => accum.concat(f.replacements), []);
   }
 
-  private sortMatches(matches: Match[]) {
+  private sortMatches(matches: Match[]): Match[] {
     const sortReplacements = (fix: Fix): Fix => {
       fix.replacements = fix.replacements.sort((a, b) => b.start - a.start);
       return fix;
@@ -84,8 +91,7 @@ export class Codelyzer {
       .sort((a, b) => b.fixes[0].replacements[0].start - a.fixes[0].replacements[0].start));
   }
 
-  private getRules() {
-    const sourceFile = getSourceFile(this.fileName, this.source);
+  private getRules(sourceFile: ts.SourceFile): AbstractRule[] {
     // Walk the code first to find all the intervals where rules are disabled
     const rulesWalker = new EnableDisableRulesWalker(sourceFile, {
       disabledIntervals: [],
@@ -107,7 +113,7 @@ export class Codelyzer {
     return result.filter((r) => r.isEnabled());
   }
 
-  private containsMatch(matches: Match[], match: Match) {
+  private containsMatch(matches: Match[], match: Match): boolean {
     return matches.some(m => m.equals(match));
   }
 }

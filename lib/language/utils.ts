@@ -209,6 +209,16 @@ function normalize(path) {
   }
 }
 
+export function getProgram(fileNames: string[], sources: string[]): ts.Program {
+  const normalizedNames = fileNames.map(f => normalize(f).replace(/\\/g, '/'));
+  const compilerOptions = createCompilerOptions();
+  const compilerHost = ts.createCompilerHost(compilerOptions, true);
+
+  const program = ts.createProgram(normalizedNames, compilerOptions, compilerHost);
+
+  return program;
+}
+
 export function getSourceFile(fileName: string, source: string): ts.SourceFile {
   const normalizedName = normalize(fileName).replace(/\\/g, '/');
   const compilerOptions = createCompilerOptions();

@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as glob from 'glob';
 import * as chalk from 'chalk';
+import * as ts from 'typescript';
 import {AbstractRule, Replacement, Match, Fix} from './language';
 import {Reporter} from './reporters/reporter';
 import {Formatter} from './formatters/formatter';
@@ -44,43 +45,86 @@ function getReporter(config: ICodelyzerOptions): Reporter {
   return loadReporter(config.reporter, config.reporters_directories);
 }
 
-function lint(rules: RulesMap, formatter: Formatter, filename: string) {
-  const contents = fs.readFileSync(filename, 'utf8');
-  const codelyzer = new Codelyzer(filename, contents, rules);
+function lint(rules: RulesMap, formatter: Formatter, files: string[]) {
+  const contents = files.map(f => fs.readFileSync(f, 'utf8'));
+  const codelyzer = new Codelyzer(files, contents, rules);
   const matches = codelyzer.lint();
-  console.log(formatter.format(matches));
-}
-
-async function lintAndRefactor(rules: RulesMap, reporter: Reporter, filename: string) {
-  const contents = fs.readFileSync(filename, 'utf8');
-/*  const contents = `import {Input, Output, Component} from '@angular/core';
-
-@Component({
-  selector: 'codelyzer-tabs',
-  template: '',
-  inputs: ['name', 'age', 'time : timeInterval']
-})
-class TabsComponent {
-  //...
-}
-
-const bar = 42
-
-var fun = function () {
-  return 42
-}`;
-*/
-  const codelyzer = new Codelyzer(filename, contents, rules);
-  const generator = codelyzer.process();
-  let next: any;
-  next = generator.next(contents);
-  while (!next.done) {
-    let { match } = next.value;
-    let res = await reporter.report(match);
-    let currentRes = generator.next(res.refactoring);
-    fs.writeFileSync(filename, currentRes.value);
-    next = generator.next(currentRes.value);
+  let matchList = [];
+  for (const v of matches.values()) {
+    matchList.push(v);
   }
+  console.log(formatter.format(matchList));
+}
+
+function lintAndRefactor(rules: RulesMap, reporter: Reporter, files: string[]) {
+  const contents = files.map(f => fs.readFileSync(f, 'utf8'));
+  const codelyzer = new Codelyzer(files, contents, rules);
+  let matchMap = codelyzer.lint();
+  // TODO Provide other options to apply patches, such as the reporter,
+  // a cumulative patch file (per source file) or a copy of the original.
+  // TODO Currently taking the first suggested fix.
+  matchMap.forEach((matches, sourceFile) => {
+    let replacements = matches.reduce((acc, m) => {
+      if (m.hasFix()) {
+        return acc.concat(m.fixes[0].replacements);
+      }
+      else {
+        return acc;
+      }
+    }, []);
+    const newName = sourceFile.fileName.substring(0, sourceFile.fileName.length - 3) + ".fix.ts";
+    fs.writeFileSync(newName, applyReplacements(replacements, sourceFile));
+  });
+}
+
+function findOptimalReplacements(replacements: Replacement[]): Replacement[] {
+  if (replacements.length === 0) {
+    return replacements;
+  }
+
+  let overlap = (a: Replacement, b: Replacement) =>
+    (a.start <= b.start && b.start < a.end) ||
+    (a.start < b.end && b.end <= a.end);
+
+  // Sort fixes by end
+  replacements.sort((a, b) => a.end - b.end);
+
+  let optimalFixes: Replacement[] = [];
+
+  let lastFix = replacements[0].start;
+  for (let i = 0; i < replacements.length; i++) {
+    if (replacements[i].start >= lastFix) {
+      optimalFixes.push(replacements[i]);
+      lastFix = replacements[i].end;
+    }
+  }
+
+  // Reverse the order
+  optimalFixes.reverse();
+
+  return optimalFixes;
+}
+
+function applyReplacements(replacements: Replacement[], source: ts.SourceFile): string {
+  const sourceText = source.getFullText();
+
+  // To be safe, don't fix overlapping changes
+  let lastChanged = sourceText.length;
+  let fixedText = sourceText;
+  replacements = findOptimalReplacements(replacements);
+
+  replacements.forEach((fix) => {
+    if (fix.end > lastChanged) {
+      // Skip overlapping change
+      return;
+    }
+    fixedText = fixedText.substring(0, fix.start) + fix.replaceWith + fixedText.substring(fix.end);
+    lastChanged = fix.start;
+  });
+
+  console.log("Made " + replacements.length + " replacements in " + source.fileName);
+
+  return fixedText;
 }
 
 function normalizeConfig(config: ICodelyzerOptionsRaw): ICodelyzerOptions {
@@ -95,23 +139,34 @@ function normalizeConfig(config: ICodelyzerOptionsRaw): ICodelyzerOptions {
   };
 }
 
-function processFile(filename: string) {
-  if (!fs.existsSync(filename)) {
-    console.error(`Unable to open file: ${filename}`);
+function processFile(filename: string): void {
+  processFiles[filename];
+};
+
+function processFiles(files: string[]): void {
+  const missingFiles: string[] = files.reduce(
+    (nex, f) => nex.concat(fs.existsSync(f) ? [] : f), []);
+  if (missingFiles.length > 0) {
+    missingFiles.forEach(f => console.error(`Unable to open file: ${f}`));
     process.exit(1);
   }
-  const config = normalizeConfig(findConfiguration('codelyzer.json', filename));
+  const config = normalizeConfig(findConfiguration('codelyzer.json', files));
   const rules = getRules(config);
   if (argv['lint-only']) {
-    lint(rules, getFormatter(config), filename);
+    lint(rules, getFormatter(config), files);
   } else {
-    lintAndRefactor(rules, getReporter(config), filename);
+    lintAndRefactor(rules, getReporter(config), files);
   }
-};
+}
 
 const files = argv._;
 
+// TODO Read project configuration from tsconfig.json
+processFiles(files);
+
+/*
 for (const file of files) {
   glob.sync(file, { ignore: argv.e }).forEach(processFile);
 }
+*/
 
