@@ -28,17 +28,20 @@ export class Codelyzer {
     const program = getProgram(this.fileNames, this.contents);
 
     for (const sourceFile of program.getSourceFiles()) {
-      const matches: Match[] = [];
-      const enabledRules = this.getRules(sourceFile);
-      for (let rule of enabledRules) {
-        const ruleMatches = rule.applyWithProgram(sourceFile, program);
-        for (let match of ruleMatches) {
-          if (!this.containsMatch(matches, match)) {
-            matches.push(match);
+      // Make sure this is a source file and not an imported / referenced file
+      if (this.fileNames.indexOf(sourceFile.fileName) >= 0) {
+        const matches: Match[] = [];
+        const enabledRules = this.getRules(sourceFile);
+        for (let rule of enabledRules) {
+          const ruleMatches = rule.applyWithProgram(sourceFile, program);
+          for (let match of ruleMatches) {
+            if (!this.containsMatch(matches, match)) {
+              matches.push(match);
+            }
           }
         }
+        matchMap.set(sourceFile, matches);
       }
-      matchMap.set(sourceFile, matches);
     }
     return matchMap;
   }

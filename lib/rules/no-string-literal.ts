@@ -7,8 +7,8 @@ export class NoStringLiteral extends AbstractRule {
   public static RULE_NAME = 'no-string-literal';
   public static FAILURE_STRING = 'Object properties cannot be accessed through string literals.';
 
-  public apply(sourceFile: ts.SourceFile): Match[] {
-    return this.applyWithWalker(new NoStringLiteralWalker(sourceFile, this.getOptions()));
+  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): Match[] {
+    return this.applyWithWalker(new NoStringLiteralWalker(sourceFile, this.getOptions(), program));
   }
 }
 
@@ -16,16 +16,21 @@ export class NoStringLiteral extends AbstractRule {
 class NoStringLiteralWalker extends RefactorRuleWalker {
   private scanner: ts.Scanner;
 
-  constructor(sourceFile: ts.SourceFile, options: IOptions) {
-    super(sourceFile, options);
+  constructor(sourceFile: ts.SourceFile, options: IOptions, program: ts.Program) {
+    super(sourceFile, options, program);
     this.scanner = ts.createScanner(ts.ScriptTarget.ES5, false, ts.LanguageVariant.Standard, sourceFile.text);
   }
 
   public visitElementAccessExpression(node: ts.ElementAccessExpression) {
     if (node.argumentExpression.kind === ts.SyntaxKind.StringLiteral) {
+      // Make sure it is part of the type
+      const tc = this.getTypeChecker();
+
+      let obj = node.expression;
+
       let arg = node.argumentExpression as ts.StringLiteral;
       let fix = new Fix(node.getStart(), node.getEnd());
-      fix.description = "Rewrite as a property accessor";
+      fix.description = "???";
       fix.replacements = [{
         start: arg.getStart() - 1,
         end: arg.getEnd() + 1,

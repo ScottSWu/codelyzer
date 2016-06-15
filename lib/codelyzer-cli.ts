@@ -73,7 +73,8 @@ function lintAndRefactor(rules: RulesMap, reporter: Reporter, files: string[]) {
       }
     }, []);
     const newName = sourceFile.fileName.substring(0, sourceFile.fileName.length - 3) + ".fix.ts";
-    fs.writeFileSync(newName, applyReplacements(replacements, sourceFile));
+    applyReplacements(replacements, sourceFile);
+    //fs.writeFileSync(newName, applyReplacements(replacements, sourceFile));
   });
 }
 
@@ -159,14 +160,26 @@ function processFiles(files: string[]): void {
   }
 }
 
-const files = argv._;
-
-// TODO Read project configuration from tsconfig.json
-processFiles(files);
-
-/*
-for (const file of files) {
-  glob.sync(file, { ignore: argv.e }).forEach(processFile);
+// Search for the copmiling folder
+let compileFolder = argv.folder || ".";
+if (!ts.sys.directoryExists(compileFolder)) {
+  console.error("Specified folder doesnot exist.")
 }
-*/
+else {
+  compileFolder = ".";
+}
 
+// Search for a tsconfig file
+let config: any;
+if (ts.sys.fileExists("tsconfig.json")) {
+  // Import options
+  config = ts.readConfigFile("tsconfig.json", read => fs.readFileSync(read).toString()).config;
+}
+else {
+  // TODO Default options
+}
+
+// Find all files in the direcotry.
+let files = ts.sys.readDirectory(argv.folder || ".", "ts", config.exclude);
+
+processFiles(files);

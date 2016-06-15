@@ -4,3 +4,7 @@ function x() {
 
 x();
 console.log(2);
+
+(x());
+
+x() + 5;

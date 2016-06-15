@@ -1,9 +1,10 @@
 {
   "rules_config": {
-    "import-destructuring-spacing": true,
-    "semicolon": true,
-    "no-string-literal": true,
-    "must-use-return": true
+    "import-destructuring-spacing": false,
+    "semicolon": false,
+    "no-string-literal": false,
+    "must-use-return": false,
+    "no-use-before-initialization": true
   }
 }
 
