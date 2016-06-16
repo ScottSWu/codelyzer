@@ -4,7 +4,8 @@
     "semicolon": false,
     "no-string-literal": false,
     "must-use-return": false,
-    "no-use-before-initialization": true
+    "no-use-before-initialization": true,
+    "no-console": [true, "log"]
   }
 }
 

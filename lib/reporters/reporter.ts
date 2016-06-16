@@ -1,6 +1,6 @@
-import {Match} from '../language';
+import {RuleFailure} from '../language';
 
 export abstract class Reporter {
-  abstract report(matches: Match): Promise<any>;
+  abstract report(matches: RuleFailure): Promise<any>;
 }
 

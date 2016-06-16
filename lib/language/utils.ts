@@ -16,13 +16,13 @@
  */
 
 import * as ts from 'typescript';
-import {IDisabledInterval, Match} from './rule';
+import {IDisabledInterval, RuleFailure} from './rule';
 
-function normalizeStringWin32(path, allowAboveRoot) {
+function normalizeStringWin32(path: string, allowAboveRoot: boolean): string {
   var res = '';
   var lastSlash = -1;
   var dots = 0;
-  var code;
+  var code: number;
   for (var i = 0; i <= path.length; ++i) {
     if (i < path.length)
       code = path.charCodeAt(i);
@@ -83,13 +83,13 @@ function normalizeStringWin32(path, allowAboveRoot) {
   return res;
 }
 
-function normalize(path) {
+function normalize(path: string): string {
   const len = path.length;
   if (len === 0)
     return '.';
   var rootEnd = 0;
   var code = path.charCodeAt(0);
-  var device;
+  var device: string;
   var isAbsolute = false;
 
   // Try to match a root
@@ -106,7 +106,7 @@ function normalize(path) {
         // Matched double path separator at beginning
         var j = 2;
         var last = j;
-        // Match 1 or more non-path separators
+        // RuleFailure 1 or more non-path separators
         for (; j < len; ++j) {
           code = path.charCodeAt(j);
           if (code === 47/*/*/ || code === 92/*\*/)
@@ -116,7 +116,7 @@ function normalize(path) {
           const firstPart = path.slice(last, j);
           // Matched!
           last = j;
-          // Match 1 or more path separators
+          // RuleFailure 1 or more path separators
           for (; j < len; ++j) {
             code = path.charCodeAt(j);
             if (code !== 47/*/*/ && code !== 92/*\*/)
@@ -125,7 +125,7 @@ function normalize(path) {
           if (j < len && j !== last) {
             // Matched!
             last = j;
-            // Match 1 or more non-path separators
+            // RuleFailure 1 or more non-path separators
             for (; j < len; ++j) {
               code = path.charCodeAt(j);
               if (code === 47/*/*/ || code === 92/*\*/)
@@ -175,7 +175,7 @@ function normalize(path) {
 
   code = path.charCodeAt(len - 1);
   var trailingSeparator = (code === 47/*/*/ || code === 92/*\*/);
-  var tail;
+  var tail: string;
   if (rootEnd < len)
     tail = normalizeStringWin32(path.slice(rootEnd), !isAbsolute);
   else
@@ -219,31 +219,6 @@ export function getProgram(fileNames: string[], sources: string[]): ts.Program {
   return program;
 }
 
-export function getSourceFile(fileName: string, source: string): ts.SourceFile {
-  const normalizedName = normalize(fileName).replace(/\\/g, '/');
-  const compilerOptions = createCompilerOptions();
-
-  const compilerHost: ts.CompilerHost = {
-    fileExists: () => true,
-    getCanonicalFileName: (filename: string) => filename,
-    getCurrentDirectory: () => '',
-    getDefaultLibFileName: () => 'lib.d.ts',
-    getNewLine: () => '\n',
-    getSourceFile: function (filenameToGet: string) {
-      if (filenameToGet === normalizedName) {
-        return ts.createSourceFile(filenameToGet, source, compilerOptions.target, true);
-      }
-    },
-    readFile: () => null,
-    useCaseSensitiveFileNames: () => true,
-    writeFile: () => null,
-  };
-
-  const program = ts.createProgram([normalizedName], compilerOptions, compilerHost);
-
-  return program.getSourceFile(normalizedName);
-}
-
 export function createCompilerOptions(): ts.CompilerOptions {
   return {
     noResolve: true,
@@ -251,7 +226,7 @@ export function createCompilerOptions(): ts.CompilerOptions {
   };
 }
 
-export function doesIntersect(match: Match, disabledIntervals: IDisabledInterval[]) {
+export function doesIntersect(match: RuleFailure, disabledIntervals: IDisabledInterval[]) {
   return disabledIntervals.some((interval) => {
     const maxStart = Math.max(interval.startPosition, match.getStartPosition().getPosition());
     const minEnd = Math.min(interval.endPosition, match.getEndPosition().getPosition());

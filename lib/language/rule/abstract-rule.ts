@@ -1,16 +1,13 @@
 import * as ts from 'typescript';
-import {RefactorRuleWalker} from '../walker';
-import {Match, IOptions, IRule, IDisabledInterval} from './';
+import {RuleWalker} from '../walker';
+import {RuleFailure, IRuleMetadata, IOptions, IRule, IDisabledInterval} from './';
 
 export enum RULE_SEVERITY {
   ERROR, WARNING, INFO
 };
 
 export abstract class AbstractRule implements IRule {
-  public static NAME: string = "";;
-  public static SEVERITY: RULE_SEVERITY = RULE_SEVERITY.INFO;
-  public static DESCRIPTION: string = "";
-  public static FAILURE_STRING: string = "";
+  public static metadata: IRuleMetadata;
 
   private options: IOptions;
 
@@ -36,17 +33,17 @@ export abstract class AbstractRule implements IRule {
     this.options.disabledIntervals = di;
   }
 
-  public apply(sourceFile: ts.SourceFile): Match[] {
+  public apply(sourceFile: ts.SourceFile): RuleFailure[] {
     return [];
   }
 
-  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): Match[] {
+  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): RuleFailure[] {
     // Default to just the sourceFile
     // This ensures compatibility with TSLint
     return this.apply(sourceFile);
   }
 
-  public applyWithWalker(walker: RefactorRuleWalker): Match[] {
+  public applyWithWalker(walker: RuleWalker): RuleFailure[] {
     walker.walk(walker.getSourceFile());
     return walker.getMatches();
   }

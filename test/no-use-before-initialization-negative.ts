@@ -9,3 +9,8 @@ if (true) {
     console.log(z.trim());
   }
 }
+
+let k: any;
+while (((k = 5).toString()).length < 0) {
+  console.log(k.toString());
+}

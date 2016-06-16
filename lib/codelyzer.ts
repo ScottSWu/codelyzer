@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import {Match, AbstractRule, getProgram, Fix, Replacement, IDisabledInterval} from './language';
+import {RuleFailure, AbstractRule, getProgram, Fix, Replacement, IDisabledInterval} from './language';
 import {EnableDisableRulesWalker} from './enable-disable-rules';
 import {
   ICodelyzerOptionsRaw,
@@ -8,7 +8,17 @@ import {
   CodelyzerResult
 } from './config';
 
+import {
+  DEFAULT_REPORTERS_DIR,
+  DEFAULT_FORMATTERS_DIR,
+  DEFAULT_RULES_DIR,
+  DEFAULT_REPORTER,
+  DEFAULT_FORMATTER,
+} from './default-config';
+
 import {buildDisabledIntervalsFromSwitches} from './utils';
+
+import {MustUseReturn, NoUseBeforeInitialization} from './rules';
 
 export interface RuleConfig {
   rule: any;
@@ -19,18 +29,32 @@ export interface RulesMap {
   [ruleName: string]: RuleConfig;
 }
 
-export class Codelyzer {
-  constructor(private fileNames: string[],
-    private contents: string[], private rulesMap: RulesMap) {}
+export {RuleFailure} from './language';
 
-  public lint(): Map<ts.SourceFile, Match[]> {
-    const matchMap = new Map<ts.SourceFile, Match[]>();
-    const program = getProgram(this.fileNames, this.contents);
+export class Codelyzer {
+  private options: ICodelyzerOptions;
+
+  constructor(private fileNames: string[], private program: ts.Program,
+    private rulesMap?: RulesMap) {
+    this.rulesMap = {};
+    this.rulesMap["must-use-return"] = {
+      rule: MustUseReturn,
+      options: true
+    };
+    this.rulesMap["no-use-before-initialization"] = {
+      rule: NoUseBeforeInitialization,
+      options: false
+    };
+  }
+
+  public lint(): Map<ts.SourceFile, RuleFailure[]> {
+    const matchMap = new Map<ts.SourceFile, RuleFailure[]>();
+    const program = this.program;
 
     for (const sourceFile of program.getSourceFiles()) {
       // Make sure this is a source file and not an imported / referenced file
       if (this.fileNames.indexOf(sourceFile.fileName) >= 0) {
-        const matches: Match[] = [];
+        const matches: RuleFailure[] = [];
         const enabledRules = this.getRules(sourceFile);
         for (let rule of enabledRules) {
           const ruleMatches = rule.applyWithProgram(sourceFile, program);
@@ -46,51 +70,26 @@ export class Codelyzer {
     return matchMap;
   }
 
-  public *process(): any {
-    /*
-    const matches: Match[] = [];
-    const enabledRules = this.getRules();
-    let sourceFile = getSourceFile(this.fileName, this.source);
-    for (let rule of enabledRules) {
-      // Workaround. Will not work if the fixes have intersection.
-      // In the perfect scenario we need to yield on each found match.
-      const ruleMatches = this.sortMatches(rule.apply(sourceFile));
-      for (let match of ruleMatches) {
-        if (!this.containsMatch(matches, match)) {
-          let choices = yield { match };
-          let fixes = this.getFixes(match, choices);
-          if (fixes.length > 0) {
-            fixes.forEach(r =>
-              this.source = this.source.slice(0, r.start) + r.replaceWith + this.source.slice(r.end));
-          }
-          yield this.source;
-          sourceFile = getSourceFile(this.fileName, this.source);
-        }
-      }
-    }
-    */
-  }
-
-  private getFixes(match: Match, choices: string[]): Fix[] {
+  private getFixes(match: RuleFailure, choices: string[]): Fix[] {
     return match.fixes
       .filter(f => choices.indexOf(f.description) >= 0)
       // Already sorted
       .reduce((accum, f) => accum.concat(f.replacements), []);
   }
 
-  private sortMatches(matches: Match[]): Match[] {
+  private sortMatches(matches: RuleFailure[]): RuleFailure[] {
     const sortReplacements = (fix: Fix): Fix => {
       fix.replacements = fix.replacements.sort((a, b) => b.start - a.start);
       return fix;
     };
-    const sortFixes = (match: Match): Match => {
+    const sortFixes = (match: RuleFailure): RuleFailure => {
       match.fixes.forEach(sortReplacements);
       match.fixes = match.fixes.sort((a, b) => b.replacements[0].start - a.replacements[0].start);
       return match;
     };
-    const nofixes = matches.filter((m: Match) => !m.fixes.length);
+    const nofixes = matches.filter((m: RuleFailure) => !m.fixes.length);
     return nofixes.concat(matches
-      .filter((m: Match) => m.fixes.length > 0)
+      .filter((m: RuleFailure) => m.fixes.length > 0)
       .sort((a, b) => b.fixes[0].replacements[0].start - a.fixes[0].replacements[0].start));
   }
 
@@ -116,7 +115,7 @@ export class Codelyzer {
     return result.filter((r) => r.isEnabled());
   }
 
-  private containsMatch(matches: Match[], match: Match): boolean {
+  private containsMatch(matches: RuleFailure[], match: RuleFailure): boolean {
     return matches.some(m => m.equals(match));
   }
 }

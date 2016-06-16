@@ -1,22 +1,28 @@
 // See https://github.com/palantir/tslint/issues/1154
 
 import * as ts from 'typescript';
-import {IOptions, AbstractRule, RefactorRuleWalker, Match, Fix} from '../language';
+import {IOptions, IRuleMetadata, AbstractRule, RuleWalker, RuleFailure, Fix} from '../language';
 
 export class MustUseReturn extends AbstractRule {
-  public static RULE_NAME = 'must-use-return';
-  public static FAILURE_STRING = 'Non-void return values must be used.';
+  public static metadata: IRuleMetadata = {
+    ruleName: 'must-use-return',
+    type: "maintainability",
+    description: "Non-void return values must be used.",
+    options: null
+  };
 
-  public apply(sourceFile: ts.SourceFile): Match[] {
+  public static FAILURE_STRING = "Non-void return values must be used.";
+
+  public apply(sourceFile: ts.SourceFile): RuleFailure[] {
     return [];
   }
 
-  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): Match[] {
+  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): RuleFailure[] {
     return this.applyWithWalker(new MustUseReturnWalker(sourceFile, this.getOptions(), program));
   }
 }
 
-class MustUseReturnWalker extends RefactorRuleWalker {
+class MustUseReturnWalker extends RuleWalker {
   private scanner: ts.Scanner;
 
   constructor(sourceFile: ts.SourceFile, options: IOptions, program: ts.Program) {
@@ -26,6 +32,9 @@ class MustUseReturnWalker extends RefactorRuleWalker {
 
   public visitCallExpression(node: ts.CallExpression) {
     const tc = this.getTypeChecker();
+    if (node.decorators) {
+      console.log(node.decorators[0]);
+    }
     const signature = tc.getResolvedSignature(node);
     const typeName = tc.typeToString(tc.getReturnTypeOfSignature(signature));
     if (typeName !== "void") {
@@ -41,11 +50,12 @@ class MustUseReturnWalker extends RefactorRuleWalker {
         }];
         fix.safe = true;
         // TODO Fix by making the function void type (if not used anywhere else)
-        this.addMatch(this.createMatch(
+        this.addFailure(this.createFailure(
           node.getStart(),
           node.getWidth(),
           MustUseReturn.FAILURE_STRING,
-          [fix]));
+          //[fix]));
+          []));
       }
     }
 

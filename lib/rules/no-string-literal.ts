@@ -1,19 +1,19 @@
 // See https://github.com/palantir/tslint/issues/1257
 
 import * as ts from 'typescript';
-import {IOptions, AbstractRule, RefactorRuleWalker, Match, Fix} from '../language';
+import {IOptions, AbstractRule, RuleWalker, RuleFailure, Fix} from '../language';
 
 export class NoStringLiteral extends AbstractRule {
   public static RULE_NAME = 'no-string-literal';
   public static FAILURE_STRING = 'Object properties cannot be accessed through string literals.';
 
-  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): Match[] {
+  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): RuleFailure[] {
     return this.applyWithWalker(new NoStringLiteralWalker(sourceFile, this.getOptions(), program));
   }
 }
 
 // The walker takes care of all the work.
-class NoStringLiteralWalker extends RefactorRuleWalker {
+class NoStringLiteralWalker extends RuleWalker {
   private scanner: ts.Scanner;
 
   constructor(sourceFile: ts.SourceFile, options: IOptions, program: ts.Program) {
@@ -37,7 +37,7 @@ class NoStringLiteralWalker extends RefactorRuleWalker {
         replaceWith: "." + arg.text
       }];
       fix.safe = true;
-      this.addMatch(this.createMatch(
+      this.addFailure(this.createFailure(
         node.getStart(),
         node.getWidth(),
         NoStringLiteral.FAILURE_STRING,

@@ -2,7 +2,7 @@
   "name": "codelyzer",
   "version": "0.0.22",
   "description": "A set of linters for Angular 2 applications, following https:/angular.io/styleguide.",
-  "main": "index.js",
+  "main": "dist/es5/index.js",
   "scripts": {
     "typings": "typings",
     "release": "rimraf dist && tsc && cp package.json README.md dist/lib",
@@ -43,7 +43,7 @@
     "mocha": "^2.4.5",
     "rimraf": "^2.5.2",
     "ts-node": "^0.5.5",
-    "tslint": "3.9.0",
+    "tslint": "^3.10.0-dev.2",
     "typings": "0.8.1"
   },
   "dependencies": {
@@ -56,7 +56,9 @@
     "optimist": "~0.6.0",
     "resolve": "^1.1.7",
     "sprintf-js": "^1.0.3",
+    "typescript": "https://registry.npmjs.org/typescript/-/typescript-1.9.0-dev.20160409.tgz",
     "underscore.string": "^3.3.4",
     "yargs": "^4.7.1"
-  }
+  },
+  "typings": "dist/esm/lib/codelyzer.d.ts"
 }

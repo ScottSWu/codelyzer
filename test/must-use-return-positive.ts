@@ -1,3 +1,8 @@
+function hello() {
+
+}
+
+@hello
 function x() {
   return 1;
 }

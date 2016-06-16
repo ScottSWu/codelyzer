@@ -2,11 +2,11 @@ import * as ts from 'typescript';
 import {sprintf} from 'sprintf-js';
 import SyntaxKind = require('./util/syntaxKind');
 
-import {AbstractRule, RefactorRuleWalker, Match, Fix} from '../language';
+import {AbstractRule, RuleWalker, RuleFailure, Fix} from '../language';
 
 export class Rule extends AbstractRule {
 
-    public apply(sourceFile:ts.SourceFile): Match[] {
+    public apply(sourceFile:ts.SourceFile): RuleFailure[] {
         return this.applyWithWalker(
             new ExpressionCallMetadataWalker(sourceFile,
                 this.getOptions()));
@@ -16,7 +16,7 @@ export class Rule extends AbstractRule {
     static FAILURE_IN_VARIABLE:string = 'Avoid using forwardRef in variable "%s"';
 }
 
-export class ExpressionCallMetadataWalker extends RefactorRuleWalker {
+export class ExpressionCallMetadataWalker extends RuleWalker {
 
     visitCallExpression(node:ts.CallExpression) {
         this.validateCallExpression(node);
@@ -35,8 +35,8 @@ export class ExpressionCallMetadataWalker extends RefactorRuleWalker {
             }else{
                 failureConfig=[Rule.FAILURE_IN_CLASS,currentNode.name.text];
             }
-            this.addMatch(
-                this.createMatch(
+            this.addFailure(
+                this.createFailure(
                     callExpression.getStart(),
                     callExpression.getWidth(),
                     sprintf.apply(this, failureConfig)));

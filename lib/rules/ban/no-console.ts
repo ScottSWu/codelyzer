@@ -15,9 +15,19 @@
  * limitations under the License.
  */
 
-export * from './block-scope-aware-rule-walker';
-export * from './rule-walker';
-export * from './scope-aware-rule-walker';
-export * from './skippable-token-aware-rule-walker';
-export * from './syntax-walker';
+import * as ts from 'typescript';
+import * as BanRule from './ban';
+import {RuleFailure, AbstractRule, RuleWalker} from '../../language';
+
+export class NoConsoleRule extends BanRule.Rule {
+    public RULE_NAME = 'no-console';
+    public apply(sourceFile: ts.SourceFile): RuleFailure[] {
+        const options = this.getOptions();
+        const consoleBanWalker = new BanRule.BanFunctionWalker(sourceFile, this.getOptions());
+        for (const option of options.ruleArguments) {
+            consoleBanWalker.addBannedFunction(['console', option]);
+        }
+        return this.applyWithWalker(consoleBanWalker);
+    }
+}
 

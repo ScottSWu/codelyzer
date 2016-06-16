@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import {RefactorRuleWalker} from '../../language';
+import {RuleWalker} from '../../language';
 
 const getDecoratorName = (decorator: ts.Decorator) => {
   let baseExpr = <any>decorator.expression || {};
@@ -14,7 +14,7 @@ const getDecoratorStringArgs = (decorator: ts.Decorator) => {
   return args.map((a: any) => (a.kind === ts.SyntaxKind.StringLiteral) ? a.text : null);
 };
 
-export class Ng2Walker extends RefactorRuleWalker {
+export class Ng2Walker extends RuleWalker {
   visitClassDeclaration(declaration: ts.ClassDeclaration) {
     (declaration.decorators || []).forEach(this.visitClassDecorator.bind(this));
     super.visitClassDeclaration(declaration);

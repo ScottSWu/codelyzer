@@ -1,6 +1,6 @@
 import {sprintf} from 'sprintf-js';
 import * as ts from 'typescript';
-import {AbstractRule, RefactorRuleWalker, Match, Fix, IDisabledInterval, IOptions, createLanguageServiceHost} from '../language';
+import {AbstractRule, RuleWalker, RuleFailure, Fix, IDisabledInterval, IOptions, createLanguageServiceHost} from '../language';
 
 import SyntaxKind = require('./util/syntaxKind');
 
@@ -25,7 +25,7 @@ export class UsePropertyDecorator extends AbstractRule {
     super(ruleName, value, disabledIntervals);
   }
 
-  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): Match[] {
+  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): RuleFailure[] {
     let documentRegistry = ts.createDocumentRegistry();
     let languageServiceHost = createLanguageServiceHost('file.ts', sourceFile.getFullText());
     return this.applyWithWalker(
@@ -33,7 +33,7 @@ export class UsePropertyDecorator extends AbstractRule {
   }
 }
 
-class DirectiveMetadataWalker extends RefactorRuleWalker {
+class DirectiveMetadataWalker extends RuleWalker {
   constructor(sourceFile: ts.SourceFile, options: IOptions,
     program: ts.Program, private config: IUsePropertyDecoratorConfig) {
       super(sourceFile, options, program);
@@ -60,8 +60,8 @@ class DirectiveMetadataWalker extends RefactorRuleWalker {
       (<ts.ObjectLiteralExpression>arg).properties.filter(prop => (<any>prop.name).text === this.config.propertyName)
       .forEach(prop => {
         let p = <any>prop;
-        this.addMatch(
-          this.createMatch(
+        this.addFailure(
+          this.createFailure(
             p.getStart(),
             p.getWidth(),
             UsePropertyDecorator.formatFailureString(this.config, decoratorName, className)));

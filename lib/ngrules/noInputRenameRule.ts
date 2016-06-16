@@ -2,11 +2,11 @@ import * as ts from 'typescript';
 import {sprintf} from 'sprintf-js';
 import {Ng2Walker} from "./util/ng2Walker";
 
-import {AbstractRule, RefactorRuleWalker, Match, Fix} from '../language';
+import {AbstractRule, RuleWalker, RuleFailure, Fix} from '../language';
 
 export class Rule extends AbstractRule {
 
-    public apply(sourceFile:ts.SourceFile): Match[] {
+    public apply(sourceFile:ts.SourceFile): RuleFailure[] {
         return this.applyWithWalker(
             new InputMetadataWalker(sourceFile,
                 this.getOptions()));
@@ -26,8 +26,8 @@ export class InputMetadataWalker extends Ng2Walker {
         if (args.length != 0 && memberName != args[0]) {
             let failureConfig:string[] = [className, memberName, memberName];
             failureConfig.unshift(Rule.FAILURE_STRING);
-            this.addMatch(
-                this.createMatch(
+            this.addFailure(
+                this.createFailure(
                     property.getStart(),
                     property.getWidth(),
                     sprintf.apply(this, failureConfig)));

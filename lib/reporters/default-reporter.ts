@@ -1,5 +1,5 @@
 import {Reporter} from './reporter';
-import {Match, Fix} from '../language';
+import {RuleFailure, Fix} from '../language';
 import * as chalk from 'chalk';
 
 const inquirer = require('inquirer');
@@ -8,7 +8,7 @@ const getFixDescription = (fix: Fix) => {
   return fix.description;
 };
 
-const getConfirmMessage = (match: Match, message: string, filename: string) => {
+const getConfirmMessage = (match: RuleFailure, message: string, filename: string) => {
   const fixes = match.fixes;
   const showFixes = fixes.length > 0;
   return [
@@ -26,7 +26,7 @@ const getConfirmMessage = (match: Match, message: string, filename: string) => {
 };
 
 export class DefaultReporter extends Reporter {
-  report(match: Match, lintOnly: boolean = false): Promise<any> {
+  report(match: RuleFailure, lintOnly: boolean = false): Promise<any> {
     const fixes = match.fixes;
     const showFixes = fixes.length > 0;
     const filename = match.getFileName();

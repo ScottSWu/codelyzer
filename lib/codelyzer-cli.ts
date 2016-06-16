@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as glob from 'glob';
 import * as chalk from 'chalk';
 import * as ts from 'typescript';
-import {AbstractRule, Replacement, Match, Fix} from './language';
+import {AbstractRule, Replacement, RuleFailure, Fix} from './language';
 import {Reporter} from './reporters/reporter';
 import {Formatter} from './formatters/formatter';
 import {findConfiguration} from './utils';
@@ -13,14 +13,6 @@ import {
   ICodelyzerOptionsRaw,
   ICodelyzerOptions,
 } from './config';
-
-import {
-  DEFAULT_REPORTERS_DIR,
-  DEFAULT_FORMATTERS_DIR,
-  DEFAULT_RULES_DIR,
-  DEFAULT_REPORTER,
-  DEFAULT_FORMATTER,
-} from './default-config';
 
 
 const argv = require('yargs').argv;
@@ -45,20 +37,10 @@ function getReporter(config: ICodelyzerOptions): Reporter {
   return loadReporter(config.reporter, config.reporters_directories);
 }
 
-function lint(rules: RulesMap, formatter: Formatter, files: string[]) {
-  const contents = files.map(f => fs.readFileSync(f, 'utf8'));
-  const codelyzer = new Codelyzer(files, contents, rules);
-  const matches = codelyzer.lint();
-  let matchList = [];
-  for (const v of matches.values()) {
-    matchList.push(v);
-  }
-  console.log(formatter.format(matchList));
-}
-
-function lintAndRefactor(rules: RulesMap, reporter: Reporter, files: string[]) {
-  const contents = files.map(f => fs.readFileSync(f, 'utf8'));
-  const codelyzer = new Codelyzer(files, contents, rules);
+function lint(files: string[], options: ts.CompilerOptions, codelyzerConfig: any) {
+  const host = ts.createCompilerHost(options, true);
+  const program = ts.createProgram(files, options, host);
+  const codelyzer = new Codelyzer(files, program);
   let matchMap = codelyzer.lint();
   // TODO Provide other options to apply patches, such as the reporter,
   // a cumulative patch file (per source file) or a copy of the original.
@@ -128,36 +110,15 @@ function applyReplacements(replacements: Replacement[], source: ts.SourceFile): 
   return fixedText;
 }
 
-function normalizeConfig(config: ICodelyzerOptionsRaw): ICodelyzerOptions {
-  config = config || {};
-  return {
-    rules_config: config.rules_config || {},
-    rules_directories: config.rules_directories || [DEFAULT_RULES_DIR],
-    formatter: config.formatter || DEFAULT_FORMATTER,
-    formatters_directories: config.formatters_directories || [DEFAULT_FORMATTERS_DIR],
-    reporter: config.reporter || DEFAULT_REPORTER,
-    reporters_directories: config.reporters_directories || [DEFAULT_REPORTERS_DIR]
-  };
-}
-
-function processFile(filename: string): void {
-  processFiles[filename];
-};
-
-function processFiles(files: string[]): void {
+function processFiles(files: string[], config: any): void {
   const missingFiles: string[] = files.reduce(
     (nex, f) => nex.concat(fs.existsSync(f) ? [] : f), []);
   if (missingFiles.length > 0) {
     missingFiles.forEach(f => console.error(`Unable to open file: ${f}`));
     process.exit(1);
   }
-  const config = normalizeConfig(findConfiguration('codelyzer.json', files));
-  const rules = getRules(config);
-  if (argv['lint-only']) {
-    lint(rules, getFormatter(config), files);
-  } else {
-    lintAndRefactor(rules, getReporter(config), files);
-  }
+  const codelyzerConfig = JSON.parse(fs.readFileSync('codelyzer.json').toString());
+  lint(files, config, codelyzerConfig);
 }
 
 // Search for the copmiling folder
@@ -182,4 +143,4 @@ else {
 // Find all files in the direcotry.
 let files = ts.sys.readDirectory(argv.folder || ".", "ts", config.exclude);
 
-processFiles(files);
+processFiles(files, config);

@@ -17,9 +17,9 @@
 
 import * as ts from 'typescript';
 import {IOptions} from '../rule';
-import {RefactorRuleWalker} from './refactor-rule-walker';
+import {RuleWalker} from './rule-walker';
 
-export class SkippableTokenAwareRuleWalker extends RefactorRuleWalker {
+export class SkippableTokenAwareRuleWalker extends RuleWalker {
   protected tokensToSkipStartEndMap: {[start: number]: number};
 
   constructor(sourceFile: ts.SourceFile, options: IOptions) {

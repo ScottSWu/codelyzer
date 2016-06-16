@@ -3,7 +3,7 @@ import {sprintf} from 'sprintf-js';
 import SyntaxKind = require('./util/syntaxKind');
 import {SelectorValidator} from "./util/selectorValidator";
 
-import {AbstractRule, RefactorRuleWalker, Match, Fix, IDisabledInterval} from '../language';
+import {AbstractRule, RuleWalker, RuleFailure, Fix, IDisabledInterval} from '../language';
 
 export class Rule extends AbstractRule {
     public prefix: string;
@@ -23,7 +23,7 @@ export class Rule extends AbstractRule {
         }
     }
 
-    public apply(sourceFile:ts.SourceFile): Match[] {
+    public apply(sourceFile:ts.SourceFile): RuleFailure[] {
         return this.applyWithWalker(
             new ClassMetadataWalker(sourceFile, this));
     }
@@ -43,7 +43,7 @@ export class Rule extends AbstractRule {
         ' be named camelCase with prefix %s, however its value is "%s".';
 }
 
-export class ClassMetadataWalker extends RefactorRuleWalker {
+export class ClassMetadataWalker extends RuleWalker {
 
     constructor(sourceFile:ts.SourceFile, private rule:Rule) {
         super(sourceFile, rule.getOptions());
@@ -78,8 +78,8 @@ export class ClassMetadataWalker extends RefactorRuleWalker {
         let isValidName:boolean = this.rule.validateName(propName);
         let isValidPrefix:boolean = (this.rule.hasPrefix?this.rule.validatePrefix(propName):true);
         if (!isValidName || !isValidPrefix) {
-            this.addMatch(
-                this.createMatch(
+            this.addFailure(
+                this.createFailure(
                     property.getStart(),
                     property.getWidth(),
                     sprintf.apply(this, this.createFailureArray(className, propName))));

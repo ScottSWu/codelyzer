@@ -1,17 +1,23 @@
 import * as ts from 'typescript';
-import {IOptions, AbstractRule, RefactorRuleWalker, Match, Fix} from '../language';
+import {IOptions, IRuleMetadata, AbstractRule, RuleWalker, RuleFailure, Fix} from '../language';
 
 export class ImportDestructuring extends AbstractRule {
-  public static RULE_NAME = 'import-destructuring-spacing';
-  public static FAILURE_STRING = 'You need to leave whitespaces inside of the import statement\'s curly braces ($$03-05$$)';
+  public static metadata: IRuleMetadata = {
+    ruleName: 'import-destructuring-spacing',
+    type: "style",
+    description: "You need to leave whitespaces inside of the import statement\'s curly braces ($$03-05$$)",
+    options: null
+  };
 
-  public apply(sourceFile: ts.SourceFile): Match[] {
+  public static FAILURE_STRING = "You need to leave whitespaces inside of the import statement\'s curly braces ($$03-05$$)";
+
+  public apply(sourceFile: ts.SourceFile): RuleFailure[] {
     return this.applyWithWalker(new ImportDestructuringSpacingWalker(sourceFile, this.getOptions()));
   }
 }
 
 // The walker takes care of all the work.
-class ImportDestructuringSpacingWalker extends RefactorRuleWalker {
+class ImportDestructuringSpacingWalker extends RuleWalker {
   private scanner: ts.Scanner;
 
   constructor(sourceFile: ts.SourceFile, options: IOptions) {
@@ -40,7 +46,7 @@ class ImportDestructuringSpacingWalker extends RefactorRuleWalker {
       const text = importClause.namedBindings.getText();
 
       if (!this.checkForWhiteSpace(text)) {
-        this.addMatch(this.createMatch(
+        this.addFailure(this.createFailure(
           importClause.namedBindings.getStart(),
           importClause.namedBindings.getWidth(),
           ImportDestructuring.FAILURE_STRING,

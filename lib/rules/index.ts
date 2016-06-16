@@ -5,3 +5,4 @@ export * from './import-destructuring-spacing';
 export * from './no-string-literal';
 export * from './must-use-return';
 export * from './no-use-before-initialization';
+export * from './ban';

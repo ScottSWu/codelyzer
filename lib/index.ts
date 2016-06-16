@@ -1,5 +1,5 @@
-import {Match, Fix, AbstractRule, Replacement} from './language';
+import {RuleFailure, Fix, AbstractRule, Replacement} from './language';
 
 export * from './codelyzer';
 export * from './config';
-export {Match, Fix, AbstractRule, Replacement};
+export {RuleFailure, Fix, AbstractRule, Replacement};

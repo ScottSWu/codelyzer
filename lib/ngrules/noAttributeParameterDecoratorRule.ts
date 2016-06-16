@@ -1,11 +1,11 @@
 import * as ts from 'typescript';
 import {sprintf} from 'sprintf-js';
 import SyntaxKind = require('./util/syntaxKind');
-import {IOptions, AbstractRule, RefactorRuleWalker, Match, Fix} from '../language';
+import {IOptions, AbstractRule, RuleWalker, RuleFailure, Fix} from '../language';
 
 export class Rule extends AbstractRule {
 
-    public apply(sourceFile:ts.SourceFile): Match[] {
+    public apply(sourceFile:ts.SourceFile): RuleFailure[] {
         return this.applyWithWalker(
             new ConstructorMetadataWalker(sourceFile,
                 this.getOptions()));
@@ -18,7 +18,7 @@ export class Rule extends AbstractRule {
 
 }
 
-export class ConstructorMetadataWalker extends RefactorRuleWalker {
+export class ConstructorMetadataWalker extends RuleWalker {
 
     visitConstructorDeclaration(node:ts.ConstructorDeclaration) {
         let syntaxKind = SyntaxKind.current();
@@ -43,8 +43,8 @@ export class ConstructorMetadataWalker extends RefactorRuleWalker {
                 if (name == 'Attribute') {
                     let failureConfig:string[] = [className, parameterName, parameterName];
                     failureConfig.unshift(Rule.FAILURE_STRING);
-                    this.addMatch(
-                        this.createMatch(
+                    this.addFailure(
+                        this.createFailure(
                             parameter.getStart(),
                             parameter.getWidth(),
                             sprintf.apply(this, failureConfig)));

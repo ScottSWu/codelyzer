@@ -1,11 +1,11 @@
-import {AbstractRule, RefactorRuleWalker, Match, Fix, IDisabledInterval, IOptions, createLanguageServiceHost} from '../language';
+import {AbstractRule, RuleWalker, RuleFailure, Fix, IDisabledInterval, IOptions, createLanguageServiceHost} from '../language';
 import * as ts from 'typescript';
 import {sprintf} from 'sprintf-js';
 import SyntaxKind = require('./util/syntaxKind');
 
 export class Rule extends AbstractRule {
 
-    public apply(sourceFile:ts.SourceFile): Match[] {
+    public apply(sourceFile:ts.SourceFile): RuleFailure[] {
         return this.applyWithWalker(
             new ClassMetadataWalker(sourceFile,
                 this.getOptions()));
@@ -15,7 +15,7 @@ export class Rule extends AbstractRule {
     static PIPE_INTERFACE_NAME = 'PipeTransform';
 }
 
-export class ClassMetadataWalker extends RefactorRuleWalker {
+export class ClassMetadataWalker extends RuleWalker {
 
     visitClassDeclaration(node:ts.ClassDeclaration) {
         let decorators = node.decorators;
@@ -24,8 +24,8 @@ export class ClassMetadataWalker extends RefactorRuleWalker {
             if (pipes.length !== 0) {
                 let className:string = node.name.text;
                 if(!this.hasIPipeTransform(node)){
-                    this.addMatch(
-                        this.createMatch(
+                    this.addFailure(
+                        this.createFailure(
                             node.getStart(),
                             node.getWidth(),
                             sprintf.apply(this, [Rule.FAILURE,className])));

@@ -1,9 +1,9 @@
-import {Match} from './language';
+import {RuleFailure} from './language';
 import {Formatter} from './formatters/formatter';
 import {Reporter} from './reporters/reporter';
 
 export interface CodelyzerResult {
-  matches: Match[];
+  matches: RuleFailure[];
   reporter: Reporter;
   formatter: Formatter;
 }

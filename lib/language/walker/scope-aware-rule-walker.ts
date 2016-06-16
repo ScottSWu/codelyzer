@@ -16,9 +16,9 @@
  */
 
 import * as ts from 'typescript';
-import {RefactorRuleWalker} from './refactor-rule-walker';
+import {RuleWalker} from './rule-walker';
 
-export abstract class ScopeAwareRuleWalker<T> extends RefactorRuleWalker {
+export abstract class ScopeAwareRuleWalker<T> extends RuleWalker {
   private scopeStack: T[];
 
   constructor(sourceFile: ts.SourceFile, options?: any) {

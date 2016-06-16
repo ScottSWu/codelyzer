@@ -1,6 +1,6 @@
-import {Match} from '../language';
+import {RuleFailure} from '../language';
 
 export abstract class Formatter {
-  abstract format(matches: Match[]): string;
+  abstract format(matches: RuleFailure[]): string;
 }
 

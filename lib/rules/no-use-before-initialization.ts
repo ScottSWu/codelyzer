@@ -1,7 +1,7 @@
 // See https://github.com/palantir/tslint/issues/624
 
 import * as ts from 'typescript';
-import {IOptions, AbstractRule, SyntaxWalker, RefactorRuleWalker, Match, Fix} from '../language';
+import {IOptions, AbstractRule, SyntaxWalker, RuleWalker, RuleFailure, Fix} from '../language';
 
 export class NoUseBeforeInitialization extends AbstractRule {
   public static RULE_NAME = 'no-use-before-initialization';
@@ -14,12 +14,12 @@ export class NoUseBeforeInitialization extends AbstractRule {
   public static FAILURE_STRING_LOOP =
     'Variable initialization is missing in loop.';
 
-  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): Match[] {
+  public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program): RuleFailure[] {
     return this.applyWithWalker(new NoUseBeforeInitializationWalker(sourceFile, this.getOptions(), program));
   }
 }
 
-class NoUseBeforeInitializationWalker extends RefactorRuleWalker {
+class NoUseBeforeInitializationWalker extends RuleWalker {
   private scanner: ts.Scanner;
 
   constructor(sourceFile: ts.SourceFile, options: IOptions, program: ts.Program) {
@@ -41,6 +41,7 @@ class NoUseBeforeInitializationWalker extends RefactorRuleWalker {
           // Find the first use of the variable
           let index = statements.indexOf(statement as ts.Statement);
           // Look at all statements afterwards
+          let initialized = false;
           while (index < statements.length) {
             let next = statements[index];
 
@@ -48,14 +49,14 @@ class NoUseBeforeInitializationWalker extends RefactorRuleWalker {
             walker.walk(next);
             switch (walker.getResult()) {
               case Result.ACCESSED:
-                this.addMatch(this.createMatch(
+                this.addFailure(this.createFailure(
                   node.getStart(),
                   node.getWidth(),
                   NoUseBeforeInitialization.FAILURE_STRING_ACCESS,
                   []));
                 break;
               case Result.EXPRESSION:
-                this.addMatch(this.createMatch(
+                this.addFailure(this.createFailure(
                   node.getStart(),
                   node.getWidth(),
                   NoUseBeforeInitialization.FAILURE_STRING_EXPRESSION,
@@ -64,19 +65,22 @@ class NoUseBeforeInitializationWalker extends RefactorRuleWalker {
               case Result.NOT_FOUND:
                 break;
               case Result.INITIALIZED:
-                return;
+                initialized = true;
+                break;
+            }
+
+            if (initialized) {
+              break;
             }
 
             index++;
           }
-
-          // At this point, no use of the variable has been found
         }
       }
       else if (statement.kind === ts.SyntaxKind.ForStatement) {
         // This is probably an issue if the first expression does not
         // initialize a declared counter for the for loop.
-        this.addMatch(this.createMatch(
+        this.addFailure(this.createFailure(
           node.getStart(),
           node.getWidth(),
           NoUseBeforeInitialization.FAILURE_STRING_LOOP,
@@ -119,7 +123,6 @@ class FirstUseWalker extends SyntaxWalker {
       }
       return;
     }
-
     super.visitBinaryExpression(node);
   }
 
@@ -127,7 +130,9 @@ class FirstUseWalker extends SyntaxWalker {
     if (node.argumentExpression.kind === ts.SyntaxKind.Identifier &&
       (node.argumentExpression as ts.Identifier).text === this.target.text) {
       // Element accessed before initialized
-      this.result = Result.ACCESSED;
+      if (this.result === Result.NOT_FOUND) {
+        this.result = Result.ACCESSED;
+      }
       return;
     }
 
@@ -137,7 +142,9 @@ class FirstUseWalker extends SyntaxWalker {
   public visitPropertyAccessExpression(node: ts.PropertyAccessExpression) {
     if (node.expression.kind === ts.SyntaxKind.Identifier &&
       (node.expression as ts.Identifier).text === this.target.text) {
-      this.result = Result.ACCESSED;
+      if (this.result === Result.NOT_FOUND) {
+        this.result = Result.ACCESSED;
+      }
       return;
     }
 

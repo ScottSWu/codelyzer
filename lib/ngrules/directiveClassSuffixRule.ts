@@ -2,11 +2,11 @@ import * as ts from 'typescript';
 import {sprintf} from 'sprintf-js';
 import SyntaxKind = require('./util/syntaxKind');
 import {Ng2Walker} from "./util/ng2Walker";
-import {Match, AbstractRule} from '../language';
+import {RuleFailure, AbstractRule} from '../language';
 
 export class Rule extends AbstractRule {
 
-    public apply(sourceFile:ts.SourceFile): Match[] {
+    public apply(sourceFile:ts.SourceFile): RuleFailure[] {
         return this.applyWithWalker(
             new ClassMetadataWalker(sourceFile,
                 this.getOptions()));
@@ -25,8 +25,8 @@ export class ClassMetadataWalker extends Ng2Walker {
         let name = controller.name;
         let className:string = name.text;
         if (!Rule.validate(className)) {
-            this.addMatch(
-                this.createMatch(
+            this.addFailure(
+                this.createFailure(
                     name.getStart(),
                     name.getWidth(),
                     sprintf.apply(this, [Rule.FAILURE, className])));

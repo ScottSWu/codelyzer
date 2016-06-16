@@ -36,7 +36,7 @@ export class RuleFailurePosition {
   }
 }
 
-export class Match {
+export class RuleFailure {
   protected fileName: string;
   protected startPosition: RuleFailurePosition;
   protected endPosition: RuleFailurePosition;
@@ -91,7 +91,7 @@ export class Match {
     };
   }
 
-  public equals(ruleFailure: Match) {
+  public equals(ruleFailure: RuleFailure) {
     return this.failure  === ruleFailure.getFailure()
         && this.fileName === ruleFailure.getFileName()
         && this.startPosition.equals(ruleFailure.getStartPosition())
